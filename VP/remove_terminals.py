@@ -2,6 +2,7 @@
 
 import os
 import sys
+import click
 import argparse
 
 def write_to_log_file(log, fname='terminals.log'):
@@ -52,18 +53,14 @@ def remove_terminals(fname, dirname):
     """
     
     # Read the lines from fname
-    print ("Opening file " + fname + "...")
     fpath = dirname + '/' + fname
     f = open(fpath, 'r')
     lines = f.readlines()
     f.close()
     
-    print fname
-    
     # new_ is the new set of lines.
     new_ = []
-    
-    print ("Processing...")
+
     log = []
     for i in range(len(lines)):
         try:
@@ -71,20 +68,14 @@ def remove_terminals(fname, dirname):
             if i % 2 == 0:
                 new_.append(lines[i])
             # Odd line numbers contain the sequences so remove the *.
-            elif i % 2 != 0 and list(lines[i].strip())[-1] == '*':
-                l = list(lines[i].strip())
-                l.pop()
-                l.append('\r')
-                l.append('\n')
-                l = ''.join(l)
+            else:
+                l = lines[i].strip().split('*')[0] + '\r\n'
                 new_.append(l)
         except:
             # Add error messages to log
             e, message, _tb = sys.exc_info()
             log.append(fname + ': line ' + str(i) + ': ' + str(e) + ': ' + str(message))
             continue
-    
-    print ("Storing to new file...")
     
     # Open a new file to write into
     new_fname = fname + '_new'
@@ -96,7 +87,6 @@ def remove_terminals(fname, dirname):
         f.write(n)
 
     f.close()
-    print ("Stored.")
     return log
 
 def remove_terminals_from_dir(dir):
@@ -113,9 +103,11 @@ def remove_terminals_from_dir(dir):
     files = os.listdir(dir)
 
     full_log = []
-    for fname in files:
-        log = remove_terminals(fname, dir)
-        full_log += log
+    label = 'Processing files...'
+    with click.progressbar(files, label=label) as bar:
+        for fname in bar:
+            log = remove_terminals(fname, dir)
+            full_log += log
 
     # If the log is not empty, create a log file
     if full_log: 
