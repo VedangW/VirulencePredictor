@@ -24,7 +24,7 @@ def save_to_disc(fname, item, **kwargs):
 		item: any object
 			The item which needs to be saved
 	"""
-
+	
 	# Open pickle file and dump
 	out = open(fname, 'w')
 	pickle.dump(item, out)
@@ -41,7 +41,6 @@ def write_to_log_file(log, fname='features.log'):
 		fname: str
 			Name of the log file to write to.
 	"""
-
 
 	# Open log file
 	f = open(fname, 'w')
@@ -115,15 +114,26 @@ def pad_sequences(seqs):
 
 	return seqs
 
-def generate_sequences_from_dir(dir):
+def generate_sequences_from_dir(dirname):
+	""" Function to generate the numerical vectors
+		from a set of segment files stored in a directory.
 
-	files = os.listdir(dir)
+		The log is stored to the file 'features.log'
+
+		Parameters
+		----------
+		dirname: str
+			Name of the directory to read segment 
+			files from.
+	"""
+
+	files = os.listdir(dirname)
 
 	# Encode all sequences in all files
 	# in the given directory
 	full_log, enc_seqs = [], []
 	for fname in files:
-		enc, log = encode_sequences_from_file(fname)
+		enc, log = encode_sequences_from_file(fname, dirname)
 		enc_seqs.append(enc)
 		full_log += log
 
@@ -132,7 +142,7 @@ def generate_sequences_from_dir(dir):
 		write_to_log_file(full_log)
 
 	# Pad the sequences
-	seqs = pad_sequences(enc_seqs)
+	# seqs = pad_sequences(enc_seqs)
 
 	save_to_disc(seqs)
 

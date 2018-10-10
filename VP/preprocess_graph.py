@@ -162,7 +162,7 @@ def preprocess(fname, out_file, delim):
 	preprocess_df(df, out_file, delim)
 
 def main():
-	# Parser argument for delimiter
+	# Parser arguments
 	parser = argparse.ArgumentParser(
 		description='Preprocesses the data containing host-pathogen interaction.')
 
