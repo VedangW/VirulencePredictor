@@ -16,7 +16,7 @@ amino_acids = frozenset(['G', 'P', 'A', 'V', 'L',
 						 'N', 'E', 'D', 'S', 'T', 
 						 '-'])
 
-def get_fname(fname):
+def get_fname_virus(fname):
 	""" Get a new file name by removing
 		the 'aligned' and adding the 'prep'.
 	"""
@@ -160,7 +160,7 @@ def preprocess_alignments(dirname, ow):
 			if anomalies:
 				df = replace_with_X(df, anomalies)
 				df = replace_X_with_mode(df)
-			fname = get_fname(fname)
+			fname = get_fname_virus(fname)
 			save_as_fasta(df, 'data/prep/' + fname)
 
 	print ("Done.")
