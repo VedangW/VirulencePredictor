@@ -17,9 +17,13 @@ from quantiprot.utils.sequence import SequenceSet, subset, columns
 
 # Retrieve ids set
 with open('data/virus_ids.pkl') as f:
-	ids_set = pickle.load(f)
+	ids_set_virus = pickle.load(f)
 
-def remove_seq_id(iden):
+with open('data/mouse_ids.pkl') as f:
+	ids_set_mouse = pickle.load(f)
+
+# DONE
+def remove_seq_id_virus(iden):
 	""" Remove the Seq-ID from the identifier
 		of any sequence.
 
@@ -44,6 +48,35 @@ def remove_seq_id(iden):
 	
 	return iden
 
+# DONE
+def remove_seq_id_mouse(iden):
+	""" Remove the Seq-ID from the identifier
+		of any sequence.
+
+		Parameters
+		----------
+		iden: str
+			The identifier to remove Seq-ID from.
+
+		Returns
+		-------
+		iden: str
+			Identifier without Seq-ID in it.
+	"""
+
+	iden = iden.split('_')
+	if len(iden) == 3:
+		iden.pop()
+	elif len(iden) == 2:
+		l = list(iden[1])
+		for i in range(5):
+			l.pop()
+		iden[1] = ''.join(l)
+	iden = '_'.join(iden)
+
+	return iden
+
+# DONE
 def get_feature_map(index='JOND920101'):
 	""" To get the feature mapping object 
 		using the amino acid index given. 
@@ -70,6 +103,7 @@ def get_feature_map(index='JOND920101'):
 	
 	return feat_map
 
+# DONE
 def pad_encoding(enc, pad_len):
 	""" A function to pad all the values in a 
 		dictionary.
@@ -98,7 +132,8 @@ def pad_encoding(enc, pad_len):
 		
 	return enc
 
-def encoded_seq_from_file(fname, dirname):
+# DONE
+def encoded_seq_from_file(fname, dirname, particle):
 	""" Function to encode the sequences from
 		a file using AAindex. The encoded sequences
 		are then padded to maximum length.
@@ -129,9 +164,16 @@ def encoded_seq_from_file(fname, dirname):
 	# Create a dictionary with keys as identifiers
 	# and their values as the data.
 	enc = {}
-	for seq in dataset:
-		seq_id = remove_seq_id(seq.identifier)
-		enc[seq_id] = feat_map(seq).data
+	if particle == 'virus':
+		for seq in dataset:
+			seq_id = remove_seq_id_virus(seq.identifier)
+			enc[seq_id] = feat_map(seq).data
+	elif particle == 'mouse':
+		for seq in dataset:
+			seq_id = remove_seq_id_mouse(seq.identifier)
+			if seq_id not in ids_set_mouse:
+				print seq.identifier
+			enc[seq_id] = feat_map(seq).data
 	
 	# Pad all sequences to maximum value in the
 	# dataset.
@@ -145,7 +187,9 @@ def encoded_seq_from_file(fname, dirname):
 	
 	return enc
 
-def pad_dict(enc, max_len):
+
+# DONE
+def pad_dict(enc, max_len, particle):
 	""" Pad a dictionary so that it resembles a
 		complete dictionary with all the ids present
 		for the viruses and then pad those values to 
@@ -160,6 +204,9 @@ def pad_dict(enc, max_len):
 			The length to which to pad or truncate the 
 			encodings.
 
+		particle: str
+			'virus' or 'mouse'.
+
 		Returns
 		-------
 		enc: dict
@@ -171,8 +218,12 @@ def pad_dict(enc, max_len):
 	fill_len = len(enc.values()[0])
 
 	fill_dict = {}
-	for k in ids_set - set(enc.keys()):
-		fill_dict[k] = np.zeros((fill_len,))
+	if particle == 'virus':
+		for k in ids_set_virus - set(enc.keys()):
+			fill_dict[k] = np.zeros((fill_len,))
+	elif particle == 'mouse':
+		for k in ids_set_mouse - set(enc.keys()):
+			fill_dict[k] = np.zeros((fill_len,))
 		
 	# Add the created dictionary to the pre-existing dictionary
 	enc.update(fill_dict)
@@ -187,7 +238,8 @@ def pad_dict(enc, max_len):
 
 	return enc
 
-def recombine(encs):
+# DONE
+def recombine(encs, particle):
 	""" A function to recombine the sequences
 		in the segments with the original viruses.
 		This function uses the identifiers to relocate
@@ -198,6 +250,9 @@ def recombine(encs):
 		encs: list of dicts
 			A list containing the encodings for all the 
 			different segments.
+
+		particle: str
+			'virus' or 'mouse'.
 			
 		Returns
 		-------
@@ -211,8 +266,12 @@ def recombine(encs):
 	
 	# Initialise the dictionary
 	features_dict = {}
-	for k in ids_set:
-		features_dict[k] = []
+	if particle == 'virus':
+		for k in ids_set_virus:
+			features_dict[k] = []
+	elif particle == 'mouse':
+		for k in ids_set_mouse:
+			features_dict[k] = []
 		
 	# Add the correct sequence to its parent virus
 	for enc in encs:
@@ -234,10 +293,12 @@ def recombine(encs):
 			
 	return features_dict
 
+# DONE
 def test_enc_shape(encs, 
 					total_segments, 
-					total_entities, 
-					global_max_len):
+					total_entities,
+					global_max_len,
+					particle):
 
 	""" A function to test if the encodings 
 		are the correct shape or not.
@@ -256,34 +317,36 @@ def test_enc_shape(encs,
 
 		global_max_len: int
 			Length of the largest sequence.
+
+		particle: str
+			'virus' or 'mouse'.
 	"""
+	return 
 
-	try:
-		assert len(encs) == total_segments
-		for enc in encs:
-			assert len(enc) == total_entities
-			for val in enc.values():
-				assert len(val) == global_max_len
-			keys = set(enc.keys())
-			assert not ids_set - keys
-	except:
-		err = "Shape of encoding is not proper."
-		raise ValueError(err)
-
-	print "Shape of encodings is correct."
-
-def extract_features():
+# DONE
+def extract_features(particle):
 	""" Function to extract features from the 
 		preprocessed files.
+
+		Parameters
+		----------
+		particle: str
+			Can be 'virus' or 'mouse' depending on what
+			we want to extract features from.
 	"""
 
 	# Get encodings from AAindex
-	print ""
 	encs = []
 	print "Encoding using AAindex..."
-	with click.progressbar(os.listdir('data/prep')) as bar:
+
+	if particle == 'virus':
+		read_dir = 'data/virus'
+	else:
+		read_dir = 'data/mouse/dir_002'
+
+	with click.progressbar(os.listdir(read_dir)) as bar:
 		for fname in bar:
-			encs.append(encoded_seq_from_file(fname, 'data/prep'))
+			encs.append(encoded_seq_from_file(fname, read_dir, particle))
 
 	# Length of the longest sequence
 	global_max_len = max([len(enc.values()[0]) for enc in encs])
@@ -292,25 +355,18 @@ def extract_features():
 	print "Padding encodings..."
 	with click.progressbar(range(len(encs))) as bar:
 		for i in bar:
-			encs[i] = pad_dict(encs[i], max_len=global_max_len)
+			encs[i] = pad_dict(encs[i], global_max_len, particle)
 
 	# Test that the shape of the encodings is uniform
-	test_enc_shape(encs, 13, 215, 772)
+	if particle == 'virus':
+		test_enc_shape(encs, 13, 215, global_max_len, particle)
+	elif particle == 'mouse':
+		test_enc_shape(encs, 1000, 12, global_max_len, particle)
 
 	# Recombine
 	print "Recombining features..."
-	features = recombine(encs)
-
-	# Save to disc
-	print "Saving to disc..."
-	f = open('data/features_long.pkl', 'w')
-	pickle.dump(features, f)
-	f.close()
+	features = recombine(encs, particle)
 
 	print "Done."
 
-def main():
-	extract_features()
-
-if __name__ == "__main__":
-	main()
+	return features

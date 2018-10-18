@@ -28,6 +28,13 @@ def get_fname_virus(fname):
 
 	return fname
 
+def get_fname_mouse(fname):
+	""" Get a new file name for a mouse file
+		by just adding '_prep' to it.
+	"""
+	fname += '_prep'
+	return fname
+
 def check_anomaly(df):
 	""" Checks if there is an anomaly
 		anywhere in the sequences.
@@ -92,9 +99,8 @@ def replace_X_with_mode(df):
 	for col in cols:
 		mode = df[col].mode()[0]
 		if mode == 'X':
-			# Throw error if 'X' is the mode of the column
-			err = "Mode of column " + col + " is 'X'" 
-			raise ValueError(err)
+			# If mode of column is 'X' then drop it.
+			df.drop([col], axis=1, inplace=True)
 		else:
 			df[col].replace('X', mode, inplace=True)
 			
@@ -136,48 +142,48 @@ def get_df_from_file(fname):
 	
 	return df
 
-def preprocess_alignments(dirname, ow):
+def preprocess_alignments(dirname, ow, particle):
 	""" Function to preprocess all files in a directory.
 	"""
 
-	# Check directory
-	if not os.path.exists('data/prep'):
-		# If doesn't exist, make a new one
-		os.makedirs('data/prep')
-	elif ow == True:
-		# Overwrite all pre-existing files
-		pass
+	# Create directories if not already existing
+	if particle == 'virus': 
+		# Check directory
+		if not os.path.exists('data/virus'):
+			# If doesn't exist, make a new one
+			os.makedirs('data/virus')
+		elif ow == True:
+			# Overwrite all pre-existing files
+			pass
+		else:
+			# Warn the user and stop the program
+			raise ValueError("Directory 'virus' already exists.")
 	else:
-		# Warn the user and stop the program
-		raise ValueError("Directory 'prep' already exists.")
-		
-	label = "Preprocessing files..."
-	with click.progressbar(os.listdir(dirname),
-		label=label) as bar:
+		# Check directory
+		if not os.path.exists('data/mouse'):
+			# If doesn't exist, make a new one
+			os.makedirs('data/mouse')
+		elif ow == True:
+			# Overwrite all pre-existing files
+			pass
+		else:
+			# Warn the user and stop the program
+			raise ValueError("Directory 'mouse' already exists.")
+
+	# Call on functions to preprocess the files
+	print "Preprocessing files..."
+	with click.progressbar(os.listdir(dirname)) as bar:
 		for fname in bar:
 			df = get_df_from_file(dirname + '/' + fname)
 			anomalies = check_anomaly(df)
 			if anomalies:
 				df = replace_with_X(df, anomalies)
 				df = replace_X_with_mode(df)
-			fname = get_fname_virus(fname)
-			save_as_fasta(df, 'data/prep/' + fname)
+			if particle == 'virus':
+				fname = get_fname_virus(fname)
+				save_as_fasta(df, 'data/virus/' + fname)
+			else:
+				fname = get_fname_mouse(fname)
+				save_as_fasta(df, 'data/mouse/' + fname)
 
 	print ("Done.")
-
-def main():
-	# Parser arguments
-	parser = argparse.ArgumentParser(
-		description='Preprocesses the aligned segments.')
-
-	parser.add_argument('-d', '--aligned_dir', nargs='?', default='aligned', 
-		type=str, help='Name of directory containing alignments.')
-
-	parser.add_argument('-ow', '--overwrite', nargs='?', default=True, 
-		type=bool, help='Set True to overwrite.')
-
-	args = parser.parse_args()
-	preprocess_alignments(args.aligned_dir, args.overwrite)
-
-if __name__ == "__main__":
-	main()
