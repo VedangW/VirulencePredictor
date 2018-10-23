@@ -131,10 +131,10 @@ def get_df_from_file(fname):
 	for i in range(len(f)):
 		dataset.append(f[i].data)
 		names.append(f[i].identifier)
-		
+	
 	# Generate a header for the dataframe
 	headers = ['a' + str(i + 1) for i in range(np.shape(dataset)[1])]
-		
+
 	# Generate dataframe
 	df = pd.DataFrame(dataset, columns=headers)
 	df['names'] = names

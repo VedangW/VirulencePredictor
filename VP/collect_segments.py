@@ -48,9 +48,9 @@ def collect_segments(delimiter):
 	if not os.path.exists(new_dir):
 		os.makedirs(new_dir)
 
-	with click.progressbar(os.listdir('proteomes'), label='Processing files') as bar:
+	with click.progressbar(os.listdir('proteomes_virus'), label='Processing files') as bar:
 		for fname in bar:
-			f = open('proteomes/' + fname, 'r')
+			f = open('proteomes_virus/' + fname, 'r')
 			store_segments(f, fname, delimiter)
 			f.close()
 

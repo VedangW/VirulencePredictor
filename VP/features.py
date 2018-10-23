@@ -7,6 +7,9 @@ import pickle
 import argparse
 import numpy as np
 
+import warnings
+warnings.filterwarnings("ignore")
+
 from keras.preprocessing.sequence import pad_sequences
 
 from quantiprot.utils.mapping import simplify
@@ -17,13 +20,13 @@ from quantiprot.utils.sequence import SequenceSet, subset, columns
 
 # Retrieve ids set
 with open('data/virus_ids.pkl') as f:
-	ids_set_virus = pickle.load(f)
+	viruses_dict = pickle.load(f)
+	ids_set_virus = set(viruses_dict.values())
 
 with open('data/mouse_ids.pkl') as f:
 	ids_set_mouse = pickle.load(f)
 
-# DONE
-def remove_seq_id_virus(iden):
+def change_format_virus(iden):
 	""" Remove the Seq-ID from the identifier
 		of any sequence.
 
@@ -42,14 +45,11 @@ def remove_seq_id_virus(iden):
 	"""
 	iden = iden.split('|')[1]
 	iden = iden.split('_')
-	iden.pop(1)
-	iden.pop(2)
-	iden = '_'.join(iden)
-	
-	return iden
+	strain = iden[0]
 
-# DONE
-def remove_seq_id_mouse(iden):
+	return viruses_dict[strain]
+
+def change_format_mouse(iden):
 	""" Remove the Seq-ID from the identifier
 		of any sequence.
 
@@ -65,6 +65,7 @@ def remove_seq_id_mouse(iden):
 	"""
 
 	iden = iden.split('_')
+
 	if len(iden) == 3:
 		iden.pop()
 	elif len(iden) == 2:
@@ -72,11 +73,12 @@ def remove_seq_id_mouse(iden):
 		for i in range(5):
 			l.pop()
 		iden[1] = ''.join(l)
-	iden = '_'.join(iden)
+
+	iden.pop(0)
+	iden = iden[0]
 
 	return iden
 
-# DONE
 def get_feature_map(index='JOND920101'):
 	""" To get the feature mapping object 
 		using the amino acid index given. 
@@ -103,7 +105,6 @@ def get_feature_map(index='JOND920101'):
 	
 	return feat_map
 
-# DONE
 def pad_encoding(enc, pad_len):
 	""" A function to pad all the values in a 
 		dictionary.
@@ -132,7 +133,6 @@ def pad_encoding(enc, pad_len):
 		
 	return enc
 
-# DONE
 def encoded_seq_from_file(fname, dirname, particle):
 	""" Function to encode the sequences from
 		a file using AAindex. The encoded sequences
@@ -166,13 +166,13 @@ def encoded_seq_from_file(fname, dirname, particle):
 	enc = {}
 	if particle == 'virus':
 		for seq in dataset:
-			seq_id = remove_seq_id_virus(seq.identifier)
+			seq_id = change_format_virus(seq.identifier)
 			enc[seq_id] = feat_map(seq).data
 	elif particle == 'mouse':
 		for seq in dataset:
-			seq_id = remove_seq_id_mouse(seq.identifier)
+			seq_id = change_format_mouse(seq.identifier)
 			if seq_id not in ids_set_mouse:
-				print seq.identifier
+				print seq.identifier, seq_id
 			enc[seq_id] = feat_map(seq).data
 	
 	# Pad all sequences to maximum value in the
@@ -187,8 +187,6 @@ def encoded_seq_from_file(fname, dirname, particle):
 	
 	return enc
 
-
-# DONE
 def pad_dict(enc, max_len, particle):
 	""" Pad a dictionary so that it resembles a
 		complete dictionary with all the ids present
@@ -238,7 +236,6 @@ def pad_dict(enc, max_len, particle):
 
 	return enc
 
-# DONE
 def recombine(encs, particle):
 	""" A function to recombine the sequences
 		in the segments with the original viruses.
@@ -273,27 +270,22 @@ def recombine(encs, particle):
 		for k in ids_set_mouse:
 			features_dict[k] = []
 		
+	flag = 0
 	# Add the correct sequence to its parent virus
 	for enc in encs:
 		for k in enc.keys():
-			features_dict[k].append(enc[k])
+			try:
+				features_dict[k].append(enc[k])
+			except:
+				print "Couldn't process", k
+
 		
 	# Check if initial shape is maintained
 	for val in features_dict.values():
 		assert len(val) == total_segments
 			
-	# Concatenate each value in the dict to form
-	# one large array
-	for k in features_dict.keys():
-		features_dict[k] = np.concatenate(features_dict[k], axis=0)
-		
-	# Check if the reshaping happened properly
-	for val in features_dict.values():
-		assert len(val) == enc_dim * total_segments
-			
 	return features_dict
 
-# DONE
 def test_enc_shape(encs, 
 					total_segments, 
 					total_entities,
@@ -323,8 +315,7 @@ def test_enc_shape(encs,
 	"""
 	return 
 
-# DONE
-def extract_features(particle):
+def extract_features(particle, mouse_read_dir):
 	""" Function to extract features from the 
 		preprocessed files.
 
@@ -342,7 +333,7 @@ def extract_features(particle):
 	if particle == 'virus':
 		read_dir = 'data/virus'
 	else:
-		read_dir = 'data/mouse/dir_002'
+		read_dir = mouse_read_dir
 
 	with click.progressbar(os.listdir(read_dir)) as bar:
 		for fname in bar:

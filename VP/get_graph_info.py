@@ -22,17 +22,17 @@ def generate_graph_info():
 	virus_dict = {}
 	mouse_dict = {}
 
-	count = 0
-	# Add viruses
-	for v in viruses:
-		virus_dict[v] = count
-		count += 1
-		
-	count = 0
-	# Add mice
-	for m in mice:
-		mouse_dict[m] = count
-		count += 1
+	with open('data/virus_order.pkl') as f:
+		v_order = pickle.load(f)
+
+	with open('data/mouse_order.pkl') as f:
+		m_order = pickle.load(f)
+
+	for v in v_order:
+		virus_dict[v[1]] = v[0]
+
+	for m in m_order:
+		mouse_dict[m[1]] = m[0]
 
 	v_nodes = df['Host_strain'].apply(lambda x: mouse_dict[x])
 	u_nodes = df['Influenza_virus_name'].apply(lambda x: virus_dict[x])
