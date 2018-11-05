@@ -136,3 +136,32 @@ def reduce_dimension_ae(features, particle, i):
 		fname = 'data/mouse_enc_ae' + i + '.pkl'
 		with open(fname, 'w') as f:
 			pickle.dump(X_final_enc, f)
+
+def reduce_dimension_incremental_pca(features):
+	keys = np.array(features.keys())
+
+	X = features.values()
+	for i in range(len(X)):
+		X[i] = np.concatenate(X[i], axis=0)
+	X = np.vstack(X)
+
+	ipca = IncrementalPCA(n_components=n_components, batch_size=10)
+	X_ipca = ipca.fit_transform(X)
+
+	X = np.concatenate([X_ipca, keys], axis=1)
+
+	print "Shape of features after reduction =", X.shape
+
+	print "Saving data..."
+	if particle == 'virus':
+		fname = 'data/virus_enc_ipca.pkl'
+		with open(fname, 'w') as f:
+			pickle.dump(X, f)
+ 	elif particle == 'mouse':
+		fname = 'data/mouse_enc_ipca.pkl'
+		with open(fname, 'w') as f:
+			pickle.dump(X, f)
+	print "Done."
+
+
+	return X
