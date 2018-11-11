@@ -6,48 +6,21 @@ import argparse
 import numpy as np
 import pandas as pd
 
+from config import AMINO_ACIDS
 from quantiprot.utils.io import load_fasta_file
 from quantiprot.utils.sequence import SequenceSet, subset, columns
 
-# The set of amino acid single letter notations
-amino_acids = frozenset(['G', 'P', 'A', 'V', 'L', 
-						 'I', 'M', 'C', 'F', 'Y', 
-						 'W', 'H', 'K', 'R', 'Q', 
-						 'N', 'E', 'D', 'S', 'T', 
-						 '-'])
+# File IO Utility functions
 
-def get_fname_virus(fname):
-	""" Get a new file name by removing
-		the 'aligned' and adding the 'prep'.
-	"""
-
-	fname = fname.split('_')
-	fname.pop()
-	fname = ''.join(fname)
-	fname += '_prep'
-
-	return fname
-
-def get_fname_mouse(fname):
-	""" Get a new file name for a mouse file
+def get_fname(fname):
+	""" Get a new file name for any file
 		by just adding '_prep' to it.
 	"""
-	fname += '_prep'
+
+	fname = fname.split('.')
+	fname = fname[0]
+	fname += '_prep.fasta'
 	return fname
-
-def check_anomaly(df):
-	""" Checks if there is an anomaly
-		anywhere in the sequences.
-	"""
-
-	to_change = {}
-	for col in df.columns:
-		# Check if any anomaly characters exist
-		diff = set(df[col].unique()) - amino_acids
-		if diff:
-			to_change[col] = list(diff)
-			
-	return to_change 
 
 def save_as_fasta(df, fname='prep.fasta'):
 	""" Save a series of sequences as 
@@ -61,12 +34,25 @@ def save_as_fasta(df, fname='prep.fasta'):
 		seqs.append(seq)
 
 	# Write to file
-	f = open(fname, 'w')
-	
-	for seq in seqs:
-		f.write(seq)
+	with open(fname, 'w') as f:
+		for seq in seqs:
+			f.write(seq)
 
-	f.close()
+# Preprocessing functions
+
+def check_anomaly(df):
+	""" Checks if there is an anomaly
+		anywhere in the sequences.
+	"""
+
+	to_change = {}
+	for col in df.columns:
+		# Check if any anomaly characters exist
+		diff = set(df[col].unique()) - AMINO_ACIDS
+		if diff:
+			to_change[col] = list(diff)
+			
+	return to_change
 
 def replace_with_X(df, change_cols):
 	""" Replaces any anomaly present with
@@ -179,11 +165,10 @@ def preprocess_alignments(dirname, ow, particle):
 			if anomalies:
 				df = replace_with_X(df, anomalies)
 				df = replace_X_with_mode(df)
+
+			# Save file as fasta
+			fname = get_fname(fname)
 			if particle == 'virus':
-				fname = get_fname_virus(fname)
 				save_as_fasta(df, 'data/virus/' + fname)
 			else:
-				fname = get_fname_mouse(fname)
 				save_as_fasta(df, 'data/mouse/' + fname)
-
-	print ("Done.")

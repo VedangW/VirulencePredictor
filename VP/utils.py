@@ -5,15 +5,6 @@ import argparse
 import numpy as np
 import pandas as pd
 
-def remove_zeros(X):
-	""" Remove columns where all values are zeros.
-		This function is not being used right now.
-	"""
-	X_t = X.T
-	where_zeros = np.where(~X_t.any(axis=1))[0]
-	X_t = np.delete(X_t, where_zeros, axis=0)
-	return X_t.T
-
 def pad_with_zero_vectors(X, threshold_len):
 	""" Pad a 2D array with 1D zero arrays to
 		achieve a threshold len.
